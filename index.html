@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>הזמנה למשפחת זייבלד</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #0F1A2E 0%, #1B2540 100%);
+      color: #fff;
+      padding: 24px;
+    }
+    .card {
+      background: #1B2540;
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+    .icon { font-size: 56px; margin-bottom: 12px; }
+    h1 { color: #F5A623; font-size: 22px; margin: 8px 0 4px; font-weight: 800; }
+    p { color: #A6B0C2; font-size: 15px; line-height: 1.5; margin: 8px 0; }
+    .code {
+      display: inline-block;
+      margin: 20px 0 10px;
+      padding: 14px 24px;
+      background: rgba(245,166,35,0.15);
+      border: 1px solid rgba(245,166,35,0.5);
+      border-radius: 14px;
+      color: #F5A623;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 14px 28px;
+      background: #F5A623;
+      color: #1A1306;
+      font-weight: 800;
+      font-size: 16px;
+      border-radius: 14px;
+      text-decoration: none;
+    }
+    .hint { color: #6B7693; font-size: 12px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🏠</div>
+    <h1>הוזמנת למשפחת זייבלד!</h1>
+    <p>פותחים את האפליקציה אוטומטית…</p>
+    <div class="code" id="code">------</div>
+    <p>אם האפליקציה לא נפתחה לבד:</p>
+    <a class="btn" id="openBtn" href="#">פתח באפליקציה</a>
+    <p class="hint">
+      אין עדיין את האפליקציה? פנה למי ששלח את ההזמנה לקבלת קישור להתקנה,<br/>
+      או הזן את הקוד למעלה ידנית במסך הכניסה.
+    </p>
+  </div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var invite = (params.get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (invite) {
+        document.getElementById('code').textContent = invite;
+        var deepLink = 'zaibaldapp://join?invite=' + encodeURIComponent(invite);
+        document.getElementById('openBtn').href = deepLink;
+        setTimeout(function () { window.location.replace(deepLink); }, 50);
+      }
+    })();
+  </script>
+</body>
+</html>
