@@ -27,6 +27,12 @@
     }
     .tree-scroll { display: flex; justify-content: safe center; }
     .tree-scroll > svg { flex: 0 0 auto; }
+    .zoombar { display: flex; justify-content: center; gap: 8px; margin: 0 0 10px; }
+    .zoombar button {
+      padding: 7px 14px; border-radius: 14px; cursor: pointer; border: 1px solid #2A3756;
+      background: #16203A; color: #E6E9F2; font-size: 14px; font-weight: 700;
+    }
+    .zoombar button.sel { border-color: rgba(245,166,35,0.6); color: #F5A623; }
     .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
     .chip {
       display: inline-flex; align-items: center; gap: 4px;
@@ -90,6 +96,11 @@
   <div class="wrap">
     <h1>🌳 עץ המשפחה — משפחת זייבלד</h1>
     <p class="subtitle">השורשים הם הדורות שלפנינו והצמרת — הילדים, הנכדים והנינים.<br/>לחיצה על שם פותחת עריכה; הכפתורים למטה מוסיפים בני משפחה.</p>
+    <div class="zoombar">
+      <button id="zoom-out" title="הקטנה">➖</button>
+      <button id="zoom-fit" class="sel">🌳 כל העץ</button>
+      <button id="zoom-in" title="הגדלה">➕</button>
+    </div>
     <div class="tree-card"><div class="tree-scroll" id="treeHost"><div class="status">טוען את העץ… 🌱</div></div></div>
     <div class="chips" id="chips"></div>
     <p class="hint" id="hint"></p>
@@ -349,11 +360,10 @@
       };
     }
 
-    function renderTreeSVG(list, width) {
+    function renderTreeSVG(list, scale) {
       var L = computeLayout(list);
       var canopyCY = L.canopyTop + L.canopyH / 2;
       var trunkTopY = L.canopyBottom - 44;
-      var scale = width / VW;
       var height = L.totalH * scale;
       var pixelWidth = L.vw * scale;
       var s = [];
@@ -573,11 +583,25 @@
     var chipsEl = document.getElementById('chips');
     var hintEl = document.getElementById('hint');
 
+    var zoomMode = 'fit';
+    var lastScale = 1;
+
+    function currentScale() {
+      var L = computeLayout(people);
+      var availW = host.parentElement.clientWidth - 18;
+      var availH = Math.max(300, window.innerHeight - 250);
+      var fit = Math.min(availW / L.vw, availH / L.totalH);
+      var readable = Math.max(280, Math.min(availW, 480)) / VW;
+      if (zoomMode === 'fit') return Math.min(fit, readable);
+      return Math.max(0.12, Math.min(2.5, zoomMode));
+    }
+
     function render() {
-      var width = Math.max(280, Math.min(host.parentElement.clientWidth - 32, 480));
-      host.innerHTML = renderTreeSVG(people, width);
+      lastScale = currentScale();
+      host.innerHTML = renderTreeSVG(people, lastScale);
       var card = host.parentElement;
       card.scrollLeft = (card.scrollWidth - card.clientWidth) / 2 * (document.dir === 'rtl' ? -1 : 1);
+      document.getElementById('zoom-fit').classList.toggle('sel', zoomMode === 'fit');
       var roots = 0, trunk = 0, canopy = 0;
       people.forEach(function (p) { if (p.level < 0) roots++; else if (p.level === 0) trunk++; else canopy++; });
       hintEl.textContent = people.length === 0
@@ -595,6 +619,10 @@
       var addEl = e.target.closest('[data-add]');
       if (addEl) openModal({ create: { level: parseInt(addEl.getAttribute('data-add'), 10) } });
     });
+
+    document.getElementById('zoom-fit').onclick = function () { zoomMode = 'fit'; render(); };
+    document.getElementById('zoom-in').onclick = function () { zoomMode = lastScale * 1.35; render(); };
+    document.getElementById('zoom-out').onclick = function () { zoomMode = lastScale / 1.35; render(); };
 
     BASE_LEVELS.forEach(function (level) {
       var m = levelMeta(level);
