@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>עץ המשפחה — משפחת זייבלד</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { background: #0F1A2E; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #0F1A2E 0%, #1B2540 100%);
+      color: #fff;
+      padding: 16px 12px 40px;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    h1 { color: #F5A623; font-size: 22px; margin: 8px 0 2px; font-weight: 800; text-align: center; }
+    .subtitle { color: #A6B0C2; font-size: 13px; text-align: center; margin: 4px 0 14px; line-height: 1.5; }
+    .tree-card {
+      background: #16203A;
+      border: 1px solid #2A3756;
+      border-radius: 22px;
+      padding: 8px;
+      overflow-x: auto;
+    }
+    .tree-scroll { display: flex; justify-content: safe center; }
+    .tree-scroll > svg { flex: 0 0 auto; }
+    .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 9px 14px; border-radius: 18px; cursor: pointer;
+      background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.4);
+      color: #F5A623; font-size: 13px; font-weight: 700; user-select: none;
+    }
+    .chip:hover { background: rgba(245,166,35,0.22); }
+    .hint { color: #6B7693; font-size: 12px; text-align: center; margin-top: 14px; line-height: 1.6; }
+    .status { color: #A6B0C2; font-size: 14px; text-align: center; padding: 40px 0; }
+
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+      z-index: 10; overflow-y: auto;
+    }
+    .modal {
+      background: #1B2540; border-radius: 22px; padding: 22px;
+      width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 19px; font-weight: 800; margin: 0 0 8px; color: #fff; }
+    .modal .note { color: #F5A623; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+    .modal label { display: block; color: #A6B0C2; font-size: 13px; margin: 10px 0 4px; }
+    .modal input[type=text] {
+      width: 100%; background: #243050; color: #fff; border: none;
+      padding: 12px 14px; border-radius: 12px; font-size: 16px; text-align: right;
+    }
+    .modal input[type=text]::placeholder { color: #5E6A85; }
+    .pickrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .pick {
+      flex-grow: 1; min-width: 30%; padding: 10px 6px; border-radius: 12px; cursor: pointer;
+      background: #243050; color: #E6E9F2; font-size: 13px; font-weight: 600; text-align: center;
+      border: none; user-select: none;
+    }
+    .pick.sel { background: #F5A623; color: #1A1306; font-weight: 800; }
+    .relrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .rel {
+      flex-grow: 1; min-width: 45%; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 10px; border-radius: 12px; cursor: pointer;
+      background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.4);
+      color: #F5A623; font-size: 13px; font-weight: 700;
+    }
+    .addedby { color: #6B7693; font-size: 12px; margin-top: 10px; }
+    .actions { display: flex; justify-content: flex-start; gap: 10px; margin-top: 18px; }
+    .btn {
+      padding: 12px 20px; border-radius: 12px; min-width: 100px; border: none; cursor: pointer;
+      font-size: 15px; font-weight: 700;
+    }
+    .btn.primary { background: #F5A623; color: #1A1306; font-weight: 800; }
+    .btn.ghost { background: #243050; color: #fff; }
+    .delete {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 14px; padding: 8px; color: #FF5C5C; font-size: 14px; font-weight: 600;
+      cursor: pointer; background: none; border: none; width: 100%;
+    }
+    svg { display: block; }
+    svg [data-pid], svg [data-add] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🌳 עץ המשפחה — משפחת זייבלד</h1>
+    <p class="subtitle">השורשים הם הדורות שלפנינו והצמרת — הילדים, הנכדים והנינים.<br/>לחיצה על שם פותחת עריכה; הכפתורים למטה מוסיפים בני משפחה.</p>
+    <div class="tree-card"><div class="tree-scroll" id="treeHost"><div class="status">טוען את העץ… 🌱</div></div></div>
+    <div class="chips" id="chips"></div>
+    <p class="hint" id="hint"></p>
+    <p class="hint">הדף מסונכרן חי עם האפליקציה — כל שינוי כאן מופיע אצל כולם. הקישור מיועד לבני המשפחה בלבד 💛</p>
+  </div>
+  <div id="modalRoot"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var SUPABASE_URL = 'https://ofsbdmbkvffsxqbdwsog.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_z3vfpDq_NBemY5XVo8hq5A_kH3Yt3cH';
+    var FAMILY_ID = 'yakovyz28@gmail.com';
+    var TREE_KEY = 'zaibald.familyTree.v1';
+    var NOTIF_KEY = 'zaibald.notifications.v1';
+    var NAME_LS = 'zaibald.web.displayName';
+
+    var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    var people = [];
+    var myName = localStorage.getItem(NAME_LS) || '';
+
+    /* ---------- shared model (ported from lib/familyTree.ts) ---------- */
+    var BASE_LEVELS = [2, 1, 0, -1, -2];
+    function levelMeta(level) {
+      switch (level) {
+        case 3: return { single: 'נין/ה', emoji: '🌼', addLabel: 'הוספת נין/ה' };
+        case 2: return { single: 'נכד/ה', emoji: '🌸', addLabel: 'הוספת נכד/ה' };
+        case 1: return { single: 'ילד/ה', emoji: '🍎', addLabel: 'הוספת ילד/ה' };
+        case 0: return { single: 'הורה', emoji: '🌳', addLabel: 'הוספת הורה' };
+        case -1: return { single: 'סבא/סבתא', emoji: '🌱', addLabel: 'הוספת סבא/סבתא' };
+        case -2: return { single: 'סבא רבא/סבתא רבתא', emoji: '🌰', addLabel: 'הוספת סבא רבא/סבתא רבתא' };
+      }
+      if (level > 3) return { single: 'צאצא (דור ' + level + ')', emoji: '🌼', addLabel: 'הוספת צאצא (דור ' + level + ')' };
+      return { single: 'דור ' + (-level) + ' בשורשים', emoji: '🪨', addLabel: 'הוספת דור ' + (-level) + ' בשורשים' };
+    }
+    var LEGACY_LEVELS = { blossom: 2, fruit: 1, trunk: 0, root: -1, deepRoot: -2 };
+    function normalizeTree(raw) {
+      if (!raw || typeof raw !== 'object' || !Array.isArray(raw.people)) return [];
+      var clean = [];
+      raw.people.forEach(function (p) {
+        if (!p || typeof p !== 'object') return;
+        if (typeof p.id !== 'string' || typeof p.name !== 'string') return;
+        var level = (typeof p.level === 'number' && isFinite(p.level)) ? Math.round(p.level)
+          : (LEGACY_LEVELS[p.generation] !== undefined ? LEGACY_LEVELS[p.generation] : 1);
+        clean.push({
+          id: p.id, name: p.name, level: level,
+          parentId: typeof p.parentId === 'string' ? p.parentId : undefined,
+          spouseName: (typeof p.spouseName === 'string' && p.spouseName.trim()) ? p.spouseName : undefined,
+          spouseParentId: typeof p.spouseParentId === 'string' ? p.spouseParentId : undefined,
+          addedBy: typeof p.addedBy === 'string' ? p.addedBy : undefined,
+          createdAt: typeof p.createdAt === 'string' ? p.createdAt : undefined,
+        });
+      });
+      var byId = new Map(clean.map(function (p) { return [p.id, p]; }));
+      clean.forEach(function (p) {
+        if (p.parentId) {
+          var par = byId.get(p.parentId);
+          if (!par || par.level !== p.level - 1) p.parentId = undefined;
+        }
+        if (p.spouseParentId) {
+          var sp = byId.get(p.spouseParentId);
+          if (!p.spouseName || !sp || sp.level !== p.level - 1) p.spouseParentId = undefined;
+        }
+      });
+      return clean;
+    }
+
+    /* ---------- tree drawing (ported from components/FamilyTreeView.tsx) ---------- */
+    var VW = 360, CX = VW / 2;
+    var COLORS = {
+      branch: '#8A5A2B', leaf: '#166534', orbText: '#FFF7EE', heart: '#FFE4EC',
+      canopyLink: 'rgba(255,255,255,0.6)',
+      parentPill: '#ECFDF5', parentText: '#047857', parentStroke: '#34D399',
+      rootLine: '#D6A35C', rootPill: '#FEF3C7', rootText: '#92400E', rootStroke: '#F59E0B',
+      deepRootLine: '#A87C3F', deepRootPill: '#EFD9B4', deepRootText: '#713F12', deepRootStroke: '#B45309',
+      placeholder: 'rgba(255,255,255,0.55)', rootPlaceholder: '#FCD34D',
+    };
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function packRows(units, capacity) {
+      var rows = [], cur = [], used = 0;
+      units.forEach(function (u) {
+        if (cur.length > 0 && used + u.slotW > capacity) { rows.push(cur); cur = []; used = 0; }
+        cur.push(u); used += u.slotW;
+      });
+      if (cur.length > 0) rows.push(cur);
+      return rows;
+    }
+    function rowCenters(row) {
+      var total = row.reduce(function (s, u) { return s + u.slotW; }, 0);
+      var acc = CX - total / 2;
+      return row.map(function (u) { var c = acc + u.slotW / 2; acc += u.slotW; return c; });
+    }
+    function coupleLabel(p) { return p.name + ' ♥ ' + p.spouseName; }
+    function nameFontSize(name, base) {
+      if (name.length <= 4) return base;
+      if (name.length <= 6) return base - 2;
+      return base - 4;
+    }
+    function pillWidth(p) {
+      if (p.spouseName) return Math.min(200, Math.max(110, coupleLabel(p).length * 7.5 + 26));
+      return Math.min(150, Math.max(78, p.name.length * 9 + 32));
+    }
+    function pillFontSize(p) {
+      if (p.spouseName) return coupleLabel(p).length > 18 ? 11 : 12;
+      return nameFontSize(p.name, 14);
+    }
+    function fruitUnit(person) { var c = !!person.spouseName; return { person: person, couple: c, slotW: c ? 90 : 96 }; }
+    function blossomUnit(person) { var c = !!person.spouseName; return { person: person, couple: c, slotW: c ? 72 : 74 }; }
+    function rootUnit(person) { return { person: person, couple: !!person.spouseName, slotW: pillWidth(person) + 12 }; }
+    function orbRadius(kind, couple) { return kind === 'fruit' ? (couple ? 33 : 27) : (couple ? 26 : 20); }
+    function buildParentRows(parents) {
+      var rows = [], pending = null;
+      parents.forEach(function (p) {
+        if (p.spouseName) {
+          if (pending) { rows.push({ kind: 'sides', left: pending }); pending = null; }
+          rows.push({ kind: 'couple', person: p });
+        } else if (pending) {
+          rows.push({ kind: 'sides', left: pending, right: p }); pending = null;
+        } else pending = p;
+      });
+      if (pending) rows.push({ kind: 'sides', left: pending });
+      return rows;
+    }
+
+    function computeLayout(list) {
+      var byLevel = new Map();
+      list.forEach(function (p) {
+        if (byLevel.has(p.level)) byLevel.get(p.level).push(p); else byLevel.set(p.level, [p]);
+      });
+      var levels = Array.from(byLevel.keys());
+      var ups = levels.filter(function (l) { return l >= 1; });
+      var downs = levels.filter(function (l) { return l <= -1; });
+      var maxUp = Math.max.apply(null, [1].concat(ups));
+      var maxDown = Math.min.apply(null, [-1].concat(downs));
+
+      var ordered = new Map();
+      ordered.set(1, byLevel.get(1) || []);
+      for (var L = 2; L <= maxUp; L++) {
+        var prev = ordered.get(L - 1) || [];
+        var idx = new Map(prev.map(function (p, i) { return [p.id, i]; }));
+        var cur = (byLevel.get(L) || []).slice().sort(function (a, b) {
+          var ai = a.parentId != null ? (idx.has(a.parentId) ? idx.get(a.parentId) : 999) : 999;
+          var bi = b.parentId != null ? (idx.has(b.parentId) ? idx.get(b.parentId) : 999) : 999;
+          return ai - bi;
+        });
+        ordered.set(L, cur);
+      }
+      ordered.set(-1, byLevel.get(-1) || []);
+      ordered.set(0, byLevel.get(0) || []);
+
+      var nodePos = new Map();
+      var canopyTop = 16;
+      var canopyPlacements = [];
+      var y = canopyTop + 42;
+      var hasDescendants = false;
+      for (var L2 = maxUp; L2 >= 1; L2--) {
+        var lvlList = ordered.get(L2) || [];
+        if (lvlList.length === 0) continue;
+        hasDescendants = true;
+        var kind = L2 === 1 ? 'fruit' : 'blossom';
+        var rowH = kind === 'fruit' ? 66 : 56;
+        var rows = packRows(lvlList.map(kind === 'fruit' ? fruitUnit : blossomUnit), kind === 'fruit' ? 300 : 290);
+        rows.forEach(function (row) {
+          var xs = rowCenters(row);
+          var cy = y + rowH / 2;
+          row.forEach(function (u, i) {
+            canopyPlacements.push({ person: u.person, couple: u.couple, x: xs[i], y: cy, kind: kind });
+            nodePos.set(u.person.id, { x: xs[i], y: cy, r: orbRadius(kind, u.couple) });
+          });
+          y += rowH;
+        });
+        y += 6;
+      }
+      var canopyH = Math.max(180, y - canopyTop + 26);
+      var canopyBottom = canopyTop + canopyH;
+
+      var parentRows = buildParentRows(ordered.get(0) || []);
+      var pillsStart = canopyBottom + 16;
+      var pillsAreaH = Math.max(1, parentRows.length) * 52;
+      var groundY = pillsStart + pillsAreaH + 14;
+
+      var soilPlacements = [];
+      var byId = new Map(list.map(function (p) { return [p.id, p]; }));
+      var GAP = 16;
+      var subW = new Map();
+      function widthOf(p) {
+        if (subW.has(p.id)) return subW.get(p.id);
+        var father = p.parentId ? byId.get(p.parentId) : undefined;
+        var mother = p.spouseParentId ? byId.get(p.spouseParentId) : undefined;
+        var kids = 0;
+        if (father) kids += widthOf(father);
+        if (mother) kids += widthOf(mother);
+        var w = Math.max(pillWidth(p) + GAP, kids);
+        subW.set(p.id, w);
+        return w;
+      }
+      var soilTop = groundY + 30;
+      function yOf(L) { return soilTop + (-L - 1) * 52; }
+      var placed = new Set();
+      function placePill(p, cx) {
+        if (placed.has(p.id)) return;
+        placed.add(p.id);
+        soilPlacements.push({ person: p, x: cx, topY: yOf(p.level), deep: p.level <= -2 });
+        nodePos.set(p.id, { x: cx, y: yOf(p.level), r: 0 });
+        var father = p.parentId ? byId.get(p.parentId) : undefined;
+        var mother = p.spouseParentId ? byId.get(p.spouseParentId) : undefined;
+        var fW = father && !placed.has(father.id) ? widthOf(father) : 0;
+        var mW = mother && !placed.has(mother.id) ? widthOf(mother) : 0;
+        var total = fW + mW;
+        if (father && fW) placePill(father, cx + total / 2 - fW / 2);
+        if (mother && mW) placePill(mother, cx - total / 2 + mW / 2);
+      }
+      var rootsList = ordered.get(-1) || [];
+      var forestW = rootsList.reduce(function (s, r) { return s + widthOf(r); }, 0);
+      var cursor = CX - forestW / 2;
+      rootsList.forEach(function (r) {
+        var w = widthOf(r);
+        placePill(r, cursor + w / 2);
+        cursor += w;
+      });
+      for (var L3 = -2; L3 >= maxDown; L3--) {
+        var stragglers = (byLevel.get(L3) || []).filter(function (p) { return !placed.has(p.id); });
+        if (stragglers.length === 0) continue;
+        var rowMax = Math.max.apply(null, [CX + forestW / 2].concat(
+          soilPlacements.filter(function (pl) { return pl.person.level === L3; })
+            .map(function (pl) { return pl.x + pillWidth(pl.person) / 2; })
+        ));
+        stragglers.forEach(function (p) {
+          var x = rowMax + GAP + pillWidth(p) / 2;
+          placed.add(p.id);
+          soilPlacements.push({ person: p, x: x, topY: yOf(L3), deep: true });
+          nodePos.set(p.id, { x: x, y: yOf(L3), r: 0 });
+          rowMax = x + pillWidth(p) / 2;
+        });
+      }
+
+      var soilRows = Math.max(1, -maxDown);
+      var soilH = Math.max(76, 30 + soilRows * 52 + 8);
+      var totalH = groundY + soilH + 14;
+
+      var minX = 0, maxX = VW;
+      soilPlacements.forEach(function (pl) {
+        var w = pillWidth(pl.person);
+        minX = Math.min(minX, pl.x - w / 2 - 10);
+        maxX = Math.max(maxX, pl.x + w / 2 + 10);
+      });
+
+      return {
+        canopyPlacements: canopyPlacements, soilPlacements: soilPlacements, parentRows: parentRows,
+        nodePos: nodePos, canopyTop: canopyTop, canopyH: canopyH, canopyBottom: canopyBottom,
+        pillsStart: pillsStart, groundY: groundY, soilH: soilH, totalH: totalH,
+        hasDescendants: hasDescendants,
+        rootsEmpty: (ordered.get(-1) || []).length === 0,
+        parentsEmpty: parentRows.length === 0,
+        vw: maxX - minX, dx: -minX,
+      };
+    }
+
+    function renderTreeSVG(list, width) {
+      var L = computeLayout(list);
+      var canopyCY = L.canopyTop + L.canopyH / 2;
+      var trunkTopY = L.canopyBottom - 44;
+      var scale = width / VW;
+      var height = L.totalH * scale;
+      var pixelWidth = L.vw * scale;
+      var s = [];
+
+      function linkLines(person, fromY, centerX, sideOffset) {
+        var pairs = [
+          { pid: person.parentId, fromX: person.spouseName ? centerX + sideOffset : centerX },
+          { pid: person.spouseParentId, fromX: centerX - sideOffset },
+        ];
+        var out = [];
+        pairs.forEach(function (pr) {
+          if (!pr.pid) return;
+          var parent = L.nodePos.get(pr.pid);
+          if (!parent) return;
+          out.push({ x1: pr.fromX, y1: fromY, x2: parent.x, y2: parent.y - parent.r });
+        });
+        return out;
+      }
+      function lineSVG(l, stroke, w) {
+        return '<line x1="' + l.x1 + '" y1="' + l.y1 + '" x2="' + l.x2 + '" y2="' + l.y2 +
+          '" stroke="' + stroke + '" stroke-width="' + w + '" stroke-linecap="round"/>';
+      }
+      function textSVG(x, y, size, fill, content, weight) {
+        return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-size="' + size +
+          '" font-weight="' + (weight || 700) + '" fill="' + fill + '">' + esc(content) + '</text>';
+      }
+
+      s.push('<svg width="' + pixelWidth + '" height="' + height + '" viewBox="0 0 ' + L.vw + ' ' + L.totalH + '" xmlns="http://www.w3.org/2000/svg">');
+      s.push('<defs>' +
+        '<linearGradient id="canopyGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#4ADE80"/><stop offset="100%" stop-color="#15803D"/></linearGradient>' +
+        '<linearGradient id="trunkGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#A16207"/><stop offset="100%" stop-color="#713F12"/></linearGradient>' +
+        '<linearGradient id="soilGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#44403C"/><stop offset="100%" stop-color="#1C1917"/></linearGradient>' +
+        '<linearGradient id="grassGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#15803D"/></linearGradient>' +
+        '<linearGradient id="fruitGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FB923C"/><stop offset="100%" stop-color="#EA580C"/></linearGradient>' +
+        '<linearGradient id="blossomGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#F9A8D4"/><stop offset="100%" stop-color="#DB2777"/></linearGradient>' +
+        '</defs>');
+      s.push('<g transform="translate(' + L.dx + ',0)">');
+      s.push('<rect x="' + (10 - L.dx) + '" y="' + L.groundY + '" width="' + (L.vw - 20) + '" height="' + L.soilH + '" rx="14" fill="url(#soilGrad)"/>');
+      s.push('<rect x="' + (10 - L.dx) + '" y="' + (L.groundY - 7) + '" width="' + (L.vw - 20) + '" height="12" rx="6" fill="url(#grassGrad)"/>');
+
+      L.soilPlacements.forEach(function (pl) {
+        linkLines(pl.person, pl.topY + 34, pl.x, pillWidth(pl.person) / 4).forEach(function (l) {
+          s.push(lineSVG(l, COLORS.deepRootLine, 2.5));
+        });
+      });
+
+      var trunkPlacements = [];
+      L.parentRows.forEach(function (row, ri) {
+        var cy = L.pillsStart + 26 + ri * 52;
+        if (row.kind === 'couple') {
+          trunkPlacements.push({ person: row.person, cx: CX, cy: cy, w: Math.min(170, pillWidth(row.person)), mode: 'center' });
+          return;
+        }
+        var loneSide = (!row.right && ri % 2 === 1) ? 'right' : 'left';
+        var leftMode = row.right ? 'left' : loneSide;
+        var wl = pillWidth(row.left);
+        trunkPlacements.push({
+          person: row.left,
+          cx: leftMode === 'left' ? CX - 26 - wl / 2 : CX + 26 + wl / 2,
+          cy: cy, w: wl, mode: leftMode,
+        });
+        if (row.right) {
+          var wr = pillWidth(row.right);
+          trunkPlacements.push({ person: row.right, cx: CX + 26 + wr / 2, cy: cy, w: wr, mode: 'right' });
+        }
+      });
+      trunkPlacements.forEach(function (tp) {
+        linkLines(tp.person, tp.cy + 17, tp.cx, tp.w / 4).forEach(function (l) {
+          s.push(lineSVG(l, COLORS.rootLine, 2.5));
+        });
+      });
+
+      L.soilPlacements.forEach(function (pl) {
+        var w = pillWidth(pl.person);
+        var label = pl.person.spouseName ? coupleLabel(pl.person) : pl.person.name;
+        var g = ['<g data-pid="' + esc(pl.person.id) + '">'];
+        if (!pl.deep) {
+          var bend = pl.x < CX ? -8 : pl.x > CX ? 8 : 0;
+          g.push('<path d="M ' + (CX + bend) + ' ' + (L.groundY + 2) + ' Q ' + ((CX + pl.x) / 2) + ' ' + (pl.topY - 8) +
+            ', ' + pl.x + ' ' + (pl.topY - 1) + '" fill="none" stroke="' + COLORS.rootLine + '" stroke-width="4" stroke-linecap="round"/>');
+        }
+        g.push('<rect x="' + (pl.x - w / 2) + '" y="' + pl.topY + '" width="' + w + '" height="34" rx="17" fill="' +
+          (pl.deep ? COLORS.deepRootPill : COLORS.rootPill) + '" stroke="' + (pl.deep ? COLORS.deepRootStroke : COLORS.rootStroke) + '" stroke-width="1"/>');
+        g.push(textSVG(pl.x, pl.topY + 22, pillFontSize(pl.person), pl.deep ? COLORS.deepRootText : COLORS.rootText, label));
+        g.push('</g>');
+        s.push(g.join(''));
+      });
+
+      if (L.rootsEmpty) {
+        s.push('<g data-add="-1"><rect x="' + (CX - 75) + '" y="' + (L.groundY + 26) + '" width="150" height="34" rx="17" fill="none" stroke="' +
+          COLORS.rootLine + '" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+          textSVG(CX, L.groundY + 48, 13, COLORS.rootPlaceholder, '+ הוסיפו סבים וסבתות') + '</g>');
+      }
+
+      s.push('<path d="M ' + (CX - 17) + ' ' + L.groundY + ' C ' + (CX - 13) + ' ' + (L.groundY - 40) + ', ' + (CX - 12) + ' ' + (trunkTopY + 30) + ', ' + (CX - 10) + ' ' + trunkTopY +
+        ' L ' + (CX + 10) + ' ' + trunkTopY + ' C ' + (CX + 12) + ' ' + (trunkTopY + 30) + ', ' + (CX + 13) + ' ' + (L.groundY - 40) + ', ' + (CX + 17) + ' ' + L.groundY + ' Z" fill="url(#trunkGrad)"/>');
+      s.push('<path d="M ' + (CX - 4) + ' ' + (trunkTopY + 6) + ' C ' + (CX - 36) + ' ' + (trunkTopY - 36) + ', ' + (CX - 58) + ' ' + (canopyCY + 24) + ', 120 ' + canopyCY +
+        '" fill="none" stroke="' + COLORS.branch + '" stroke-width="9" stroke-linecap="round"/>');
+      s.push('<path d="M ' + (CX + 4) + ' ' + (trunkTopY + 6) + ' C ' + (CX + 36) + ' ' + (trunkTopY - 36) + ', ' + (CX + 58) + ' ' + (canopyCY + 24) + ', 240 ' + canopyCY +
+        '" fill="none" stroke="' + COLORS.branch + '" stroke-width="9" stroke-linecap="round"/>');
+      s.push('<line x1="' + CX + '" y1="' + (trunkTopY + 4) + '" x2="' + CX + '" y2="' + canopyCY + '" stroke="' + COLORS.branch + '" stroke-width="8" stroke-linecap="round"/>');
+
+      s.push('<ellipse cx="' + CX + '" cy="' + canopyCY + '" rx="150" ry="' + (L.canopyH / 2) + '" fill="url(#canopyGrad)"/>');
+      s.push('<circle cx="110" cy="' + (canopyCY + L.canopyH * 0.12) + '" r="' + (L.canopyH * 0.34) + '" fill="url(#canopyGrad)"/>');
+      s.push('<circle cx="250" cy="' + (canopyCY + L.canopyH * 0.12) + '" r="' + (L.canopyH * 0.34) + '" fill="url(#canopyGrad)"/>');
+      s.push('<circle cx="' + CX + '" cy="' + (L.canopyTop + L.canopyH * 0.28) + '" r="' + (L.canopyH * 0.36) + '" fill="rgba(255,255,255,0.10)"/>');
+
+      L.canopyPlacements.filter(function (pl) { return pl.person.level >= 2; }).forEach(function (pl) {
+        var r = orbRadius(pl.kind, pl.couple);
+        linkLines(pl.person, pl.y + r, pl.x, r * 0.45).forEach(function (l) {
+          s.push(lineSVG(l, COLORS.canopyLink, 2.5));
+        });
+      });
+
+      L.canopyPlacements.forEach(function (pl) {
+        var r = orbRadius(pl.kind, pl.couple);
+        var grad = pl.kind === 'fruit' ? 'url(#fruitGrad)' : 'url(#blossomGrad)';
+        var g = ['<g data-pid="' + esc(pl.person.id) + '">'];
+        g.push('<circle cx="' + pl.x + '" cy="' + pl.y + '" r="' + r + '" fill="' + grad + '"/>');
+        g.push('<circle cx="' + (pl.x - r * 0.3) + '" cy="' + (pl.y - r * 0.35) + '" r="' + (r * 0.42) + '" fill="rgba(255,255,255,0.18)"/>');
+        if (pl.kind === 'fruit') {
+          var lx = pl.x + r * 0.4, ly = pl.y - r + 2;
+          g.push('<ellipse cx="' + lx + '" cy="' + ly + '" rx="8" ry="4.5" fill="' + COLORS.leaf + '" transform="rotate(-30 ' + lx + ' ' + ly + ')"/>');
+        }
+        if (!pl.couple) {
+          g.push(textSVG(pl.x, pl.y + 4.5, nameFontSize(pl.person.name, pl.kind === 'fruit' ? 13 : 11), COLORS.orbText, pl.person.name));
+        } else {
+          var ns = function (n) { return Math.max(8, nameFontSize(n, pl.kind === 'fruit' ? 12 : 10)); };
+          g.push(textSVG(pl.x, pl.y - (pl.kind === 'fruit' ? 7 : 6), ns(pl.person.name), COLORS.orbText, pl.person.name));
+          g.push(textSVG(pl.x, pl.y + (pl.kind === 'fruit' ? 4 : 3), 8, COLORS.heart, '♥'));
+          g.push(textSVG(pl.x, pl.y + (pl.kind === 'fruit' ? 15 : 13), ns(pl.person.spouseName), COLORS.orbText, pl.person.spouseName));
+        }
+        g.push('</g>');
+        s.push(g.join(''));
+      });
+
+      if (!L.hasDescendants) {
+        s.push('<g data-add="1"><circle cx="' + CX + '" cy="' + canopyCY + '" r="30" fill="none" stroke="' + COLORS.placeholder + '" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+          textSVG(CX, canopyCY + 6, 20, COLORS.placeholder, '+') +
+          textSVG(CX, canopyCY + 52, 12, COLORS.placeholder, 'הוסיפו ילדים — הפירות שלנו') + '</g>');
+      }
+
+      trunkPlacements.forEach(function (tp) {
+        var label = tp.person.spouseName ? coupleLabel(tp.person) : tp.person.name;
+        var x = tp.cx - tp.w / 2;
+        var g = ['<g data-pid="' + esc(tp.person.id) + '">'];
+        if (tp.mode !== 'center') {
+          g.push('<line x1="' + (tp.mode === 'left' ? CX - 13 : CX + 13) + '" y1="' + tp.cy + '" x2="' + (tp.mode === 'left' ? CX - 26 : CX + 26) + '" y2="' + tp.cy +
+            '" stroke="' + COLORS.branch + '" stroke-width="3"/>');
+        }
+        g.push('<rect x="' + x + '" y="' + (tp.cy - 17) + '" width="' + tp.w + '" height="34" rx="17" fill="' + COLORS.parentPill + '" stroke="' + COLORS.parentStroke + '" stroke-width="1.2"/>');
+        g.push(textSVG(tp.cx, tp.cy + 5, pillFontSize(tp.person), COLORS.parentText, label));
+        g.push('</g>');
+        s.push(g.join(''));
+      });
+
+      if (L.parentsEmpty) {
+        s.push('<g data-add="0"><rect x="' + (CX + 26) + '" y="' + (L.pillsStart + 9) + '" width="120" height="34" rx="17" fill="none" stroke="' +
+          COLORS.parentStroke + '" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+          textSVG(CX + 86, L.pillsStart + 31, 13, COLORS.parentStroke, '+ הוסיפו הורים') + '</g>');
+      }
+
+      s.push('</g></svg>');
+      return s.join('');
+    }
+
+    /* ---------- data access ---------- */
+    async function ensureAccess() {
+      var sess = await client.auth.getSession();
+      var uid = sess.data.session && sess.data.session.user ? sess.data.session.user.id : null;
+      if (!uid) {
+        var signed = await client.auth.signInAnonymously();
+        if (signed.error) throw new Error('anonymous sign-in failed: ' + signed.error.message);
+        uid = signed.data.user.id;
+      }
+      var up = await client.from('family_members').upsert(
+        { user_id: uid, family_id: FAMILY_ID, display_name: myName || 'אורח מהדף' },
+        { onConflict: 'user_id' }
+      );
+      if (up.error) throw new Error('family link failed: ' + up.error.message);
+    }
+
+    async function loadTree() {
+      var res = await client.from('app_data').select('value').eq('family_id', FAMILY_ID).eq('key', TREE_KEY).maybeSingle();
+      if (res.error) throw new Error(res.error.message);
+      people = normalizeTree(res.data ? res.data.value : null);
+    }
+
+    async function saveTree(nextPeople) {
+      var row = {
+        user_email: FAMILY_ID, family_id: FAMILY_ID, key: TREE_KEY,
+        value: { people: nextPeople }, updated_at: new Date().toISOString(),
+      };
+      var res = await client.from('app_data').upsert([row], { onConflict: 'user_email,key' });
+      if (res.error) { alert('השמירה נכשלה: ' + res.error.message); return false; }
+      people = nextPeople;
+      return true;
+    }
+
+    async function pushNotice(title, body) {
+      try {
+        var res = await client.from('app_data').select('value').eq('family_id', FAMILY_ID).eq('key', NOTIF_KEY).maybeSingle();
+        var listv = (res.data && Array.isArray(res.data.value)) ? res.data.value : [];
+        listv.unshift({
+          id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          type: 'family', title: title, body: body, read: false, createdAt: Date.now(),
+        });
+        await client.from('app_data').upsert([{
+          user_email: FAMILY_ID, family_id: FAMILY_ID, key: NOTIF_KEY,
+          value: listv.slice(0, 80), updated_at: new Date().toISOString(),
+        }], { onConflict: 'user_email,key' });
+      } catch (e) { /* notifications are best-effort */ }
+    }
+
+    /* ---------- UI ---------- */
+    var host = document.getElementById('treeHost');
+    var chipsEl = document.getElementById('chips');
+    var hintEl = document.getElementById('hint');
+
+    function render() {
+      var width = Math.max(280, Math.min(host.parentElement.clientWidth - 32, 480));
+      host.innerHTML = renderTreeSVG(people, width);
+      var card = host.parentElement;
+      card.scrollLeft = (card.scrollWidth - card.clientWidth) / 2 * (document.dir === 'rtl' ? -1 : 1);
+      var roots = 0, trunk = 0, canopy = 0;
+      people.forEach(function (p) { if (p.level < 0) roots++; else if (p.level === 0) trunk++; else canopy++; });
+      hintEl.textContent = people.length === 0
+        ? 'העץ עדיין ריק — לחצו על אחד הכפתורים כדי להתחיל לשתול 🌱'
+        : 'בעץ שלנו ' + people.length + ' בני משפחה: ' + roots + ' בשורשים, ' + trunk + ' בגזע ו-' + canopy + ' בצמרת.';
+    }
+
+    host.addEventListener('click', function (e) {
+      var pidEl = e.target.closest('[data-pid]');
+      if (pidEl) {
+        var p = people.find(function (q) { return q.id === pidEl.getAttribute('data-pid'); });
+        if (p) openModal({ person: p });
+        return;
+      }
+      var addEl = e.target.closest('[data-add]');
+      if (addEl) openModal({ create: { level: parseInt(addEl.getAttribute('data-add'), 10) } });
+    });
+
+    BASE_LEVELS.forEach(function (level) {
+      var m = levelMeta(level);
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = '+ ' + m.emoji + ' ' + m.single;
+      b.onclick = function () { openModal({ create: { level: level } }); };
+      chipsEl.appendChild(b);
+    });
+
+    var modalRoot = document.getElementById('modalRoot');
+    function closeModal() { modalRoot.innerHTML = ''; }
+
+    function openModal(editing) {
+      var person = editing.person || null;
+      var create = editing.create || null;
+      var linkedCreation = !!create && (create.parentId != null || create.linkChildId != null);
+      var state = {
+        name: person ? person.name : '',
+        spouseName: person && person.spouseName ? person.spouseName : '',
+        level: person ? person.level : create.level,
+        parentId: person ? person.parentId : create.parentId,
+        spouseParentId: person ? person.spouseParentId : undefined,
+      };
+
+      function build() {
+        var meta = levelMeta(state.level);
+        var levelChips = BASE_LEVELS.indexOf(state.level) >= 0 ? BASE_LEVELS : BASE_LEVELS.concat([state.level]);
+        var parentCandidates = people.filter(function (p) {
+          return p.level === state.level - 1 && (!person || p.id !== person.id);
+        });
+
+        var h = ['<div class="backdrop" id="backdrop"><div class="modal">'];
+        h.push('<h2>' + esc(person ? 'עריכה — ' + person.name : meta.addLabel) + '</h2>');
+        if (create && create.relativeLabel) h.push('<p class="note">' + esc(create.relativeLabel) + ' — יחובר בקו על העץ 🔗</p>');
+        h.push('<label>שם</label><input type="text" id="f-name" placeholder="לדוגמה: סבתא רחל" value="' + esc(state.name) + '"/>');
+        h.push('<label>בן/בת זוג (לא חובה) 💍</label><input type="text" id="f-spouse" placeholder="יופיעו יחד על העץ" value="' + esc(state.spouseName) + '"/>');
+
+        if (!linkedCreation) {
+          h.push('<label>מקום בעץ</label><div class="pickrow">');
+          levelChips.forEach(function (l) {
+            var m = levelMeta(l);
+            h.push('<button class="pick' + (state.level === l ? ' sel' : '') + '" data-level="' + l + '">' + m.emoji + ' ' + esc(m.single) + '</button>');
+          });
+          h.push('</div>');
+        }
+
+        if (!(create && create.parentId) && parentCandidates.length > 0) {
+          h.push('<label>מי ההורה על העץ? (לא חובה) — יצויר קו ביניהם</label><div class="pickrow">');
+          h.push('<button class="pick' + (state.parentId == null ? ' sel' : '') + '" data-parent="">ללא</button>');
+          parentCandidates.forEach(function (p) {
+            h.push('<button class="pick' + (state.parentId === p.id ? ' sel' : '') + '" data-parent="' + esc(p.id) + '">' + esc(p.name) + '</button>');
+          });
+          h.push('</div>');
+        }
+
+        if (state.spouseName.trim() && parentCandidates.length > 0) {
+          h.push('<label>מי ההורה של ' + esc(state.spouseName.trim()) + '? (לא חובה) — יצויר קו ביניהם</label><div class="pickrow">');
+          h.push('<button class="pick' + (state.spouseParentId == null ? ' sel' : '') + '" data-sparent="">ללא</button>');
+          parentCandidates.forEach(function (p) {
+            h.push('<button class="pick' + (state.spouseParentId === p.id ? ' sel' : '') + '" data-sparent="' + esc(p.id) + '">' + esc(p.name) + '</button>');
+          });
+          h.push('</div>');
+        }
+
+        if (person) {
+          h.push('<div class="relrow">');
+          h.push('<button class="rel" id="rel-child">+ ילד/ה ל' + esc(person.name) + '</button>');
+          h.push('<button class="rel" id="rel-parent">+ הורה ל' + esc(person.name) + '</button>');
+          if (person.spouseName) h.push('<button class="rel" id="rel-sparent">+ הורה ל' + esc(person.spouseName) + '</button>');
+          h.push('</div>');
+          if (person.addedBy) h.push('<p class="addedby">נוסף/ה על ידי ' + esc(person.addedBy) + '</p>');
+        }
+
+        h.push('<div class="actions"><button class="btn primary" id="f-save">שמירה</button><button class="btn ghost" id="f-cancel">ביטול</button></div>');
+        if (person) h.push('<button class="delete" id="f-delete">🗑 הסרה מהעץ</button>');
+        h.push('</div></div>');
+        modalRoot.innerHTML = h.join('');
+
+        var nameIn = document.getElementById('f-name');
+        var spouseIn = document.getElementById('f-spouse');
+        nameIn.oninput = function () { state.name = nameIn.value; };
+        spouseIn.oninput = function () {
+          var had = !!state.spouseName.trim();
+          state.spouseName = spouseIn.value;
+          if (had !== !!state.spouseName.trim()) { build(); document.getElementById('f-spouse').focus(); }
+        };
+        if (!person) nameIn.focus();
+
+        document.getElementById('backdrop').onclick = function (e) { if (e.target.id === 'backdrop') closeModal(); };
+        document.getElementById('f-cancel').onclick = closeModal;
+        modalRoot.querySelectorAll('[data-level]').forEach(function (b) {
+          b.onclick = function () {
+            var l = parseInt(b.getAttribute('data-level'), 10);
+            if (l !== state.level) { state.level = l; state.parentId = undefined; state.spouseParentId = undefined; build(); }
+          };
+        });
+        modalRoot.querySelectorAll('[data-parent]').forEach(function (b) {
+          b.onclick = function () { state.parentId = b.getAttribute('data-parent') || undefined; build(); };
+        });
+        modalRoot.querySelectorAll('[data-sparent]').forEach(function (b) {
+          b.onclick = function () { state.spouseParentId = b.getAttribute('data-sparent') || undefined; build(); };
+        });
+        if (person) {
+          document.getElementById('rel-child').onclick = function () {
+            openModal({ create: { level: person.level + 1, parentId: person.id, relativeLabel: 'ילד/ה של ' + person.name } });
+          };
+          document.getElementById('rel-parent').onclick = function () {
+            openModal({ create: { level: person.level - 1, linkChildId: person.id, relativeLabel: 'הורה של ' + person.name } });
+          };
+          var sp = document.getElementById('rel-sparent');
+          if (sp) sp.onclick = function () {
+            openModal({ create: { level: person.level - 1, linkChildId: person.id, linkSpouse: true, relativeLabel: 'הורה של ' + person.spouseName } });
+          };
+          document.getElementById('f-delete').onclick = async function () {
+            if (!window.confirm('להסיר את ' + person.name + ' מעץ המשפחה?')) return;
+            var next = people.filter(function (p) { return p.id !== person.id; }).map(function (p) {
+              var q = Object.assign({}, p);
+              if (q.parentId === person.id) q.parentId = undefined;
+              if (q.spouseParentId === person.id) q.spouseParentId = undefined;
+              return q;
+            });
+            if (await saveTree(next)) {
+              pushNotice('עדכון בעץ המשפחה', person.name + ' הוסר/ה מהעץ');
+              closeModal(); render();
+            }
+          };
+        }
+        document.getElementById('f-save').onclick = async function () {
+          var cleanName = state.name.trim();
+          if (!cleanName) { alert('בבקשה תכתוב את השם 🙏'); return; }
+          var cleanSpouse = state.spouseName.trim();
+          var data = {
+            name: cleanName, level: state.level,
+            parentId: state.parentId,
+            spouseName: cleanSpouse || undefined,
+            spouseParentId: cleanSpouse ? state.spouseParentId : undefined,
+            addedBy: person && person.addedBy ? person.addedBy : (myName || undefined),
+          };
+          var next;
+          if (person) {
+            next = people.map(function (p) { return p.id === person.id ? Object.assign({}, p, data) : p; });
+          } else {
+            var newPerson = Object.assign({
+              id: 'tp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+              createdAt: new Date().toISOString(),
+            }, data);
+            next = people.concat([newPerson]);
+            if (create.linkChildId) {
+              next = next.map(function (q) {
+                if (q.id !== create.linkChildId) return q;
+                var patched = Object.assign({}, q);
+                if (create.linkSpouse) patched.spouseParentId = newPerson.id; else patched.parentId = newPerson.id;
+                return patched;
+              });
+            }
+          }
+          if (await saveTree(next)) {
+            if (!person) pushNotice('עץ המשפחה גדל! 🌳', cleanName + ' נוסף/ה לעץ (' + levelMeta(state.level).single + ')');
+            closeModal(); render();
+          }
+        };
+      }
+      build();
+    }
+
+    function askName() {
+      return new Promise(function (resolve) {
+        if (myName) { resolve(); return; }
+        modalRoot.innerHTML =
+          '<div class="backdrop"><div class="modal"><h2>שלום! מי את/ה? 👋</h2>' +
+          '<label>השם יוצג ליד מה שתוסיפו לעץ</label>' +
+          '<input type="text" id="who" placeholder="השם שלך"/>' +
+          '<div class="actions"><button class="btn primary" id="who-go">המשך</button></div></div></div>';
+        var input = document.getElementById('who');
+        input.focus();
+        function done() {
+          var v = input.value.trim();
+          if (!v) { input.focus(); return; }
+          myName = v;
+          localStorage.setItem(NAME_LS, v);
+          closeModal();
+          resolve();
+        }
+        document.getElementById('who-go').onclick = done;
+        input.onkeydown = function (e) { if (e.key === 'Enter') done(); };
+      });
+    }
+
+    async function main() {
+      try {
+        await askName();
+        await ensureAccess();
+        await loadTree();
+        render();
+        client.channel('web-tree:' + FAMILY_ID)
+          .on('postgres_changes',
+            { event: '*', schema: 'public', table: 'app_data', filter: 'family_id=eq.' + FAMILY_ID },
+            function (payload) {
+              var row = payload['new'];
+              if (row && row.key === TREE_KEY) { people = normalizeTree(row.value); render(); }
+            })
+          .subscribe();
+        window.addEventListener('resize', render);
+      } catch (err) {
+        host.innerHTML = '<div class="status">לא הצלחנו להתחבר לעץ 😕<br/>' + esc(err.message || String(err)) + '</div>';
+      }
+    }
+    main();
+  })();
+  </script>
+</body>
+</html>
